@@ -42,7 +42,10 @@ local function handle(player, action, first, second, third)
 
     local message
     if action == "move" then
-        local _, status = Inventory.Move(player, first, second)
+        local _, status = Inventory.Move(player, first, second, third)
+        message = status
+    elseif action == "use" or action == "discard" then
+        local _, status = Inventory.Action(player, action, first, second)
         message = status
     elseif action == "team" then
         local changed, status = Teams.Select(player, first)
@@ -54,7 +57,11 @@ local function handle(player, action, first, second, third)
         return { Message = "Ação inválida." }
     end
 
+    local slots, capacity = Inventory.Limits(data)
     return {
+        MaxSlots = slots,
+        MaxGrams = capacity,
+        Backpack = data.Backpack == true,
         Message = message,
         Team = data.Team,
         Available = Teams.Available(player),

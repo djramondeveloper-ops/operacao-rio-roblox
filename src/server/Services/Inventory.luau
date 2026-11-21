@@ -1,94 +1,122 @@
 local Items = require(game:GetService("ReplicatedStorage").Shared.Items)
 local Profiles = require(script.Parent.Profiles)
+local Careers = require(script.Parent.Careers)
+local Rules = require(script.Parent.InventoryRules)
 
-local Inventory = {}
+local Inventory = { Weight = Rules.Weight, Limits = Rules.Limits }
 
-local function validIndex(index)
-    return type(index) == "number" and index % 1 == 0 and index >= 1 and index <= Items.Slots
-end
-
-function Inventory.Weight(slots)
-    local grams = 0
-    for _, slot in pairs(slots) do
-        grams += Items.Catalog[slot.Id].Grams * slot.Count
+function Inventory.CanHandle(player, data, definition)
+    if not definition.PoliceOnly then
+        return true
     end
-    return grams
+    local team = data.Team
+    return (team == "pmerj" or team == "bope") and Careers.CanJoin(player, team)
+        and (not definition.Organization or team == definition.Organization)
+        and (data.Careers[team] or 0) >= (definition.Rank or 1)
 end
 
-function Inventory.Move(player, fromIndex, toIndex)
+function Inventory.Move(player, fromIndex, toIndex, quantity)
     local data = Profiles.Get(player)
     if not data then
-        return false, "Perfil indisponível."
+        return false, "Personagem indisponível."
     end
-    if not validIndex(fromIndex) or not validIndex(toIndex) or fromIndex == toIndex then
+    local from = Rules.Index(data, fromIndex)
+    local to = Rules.Index(data, toIndex)
+    if not from or not to or from == to then
         return false, "Selecione dois slots diferentes."
     end
-
-    local fromKey = tostring(fromIndex)
-    local toKey = tostring(toIndex)
-    local slots = data.Slots
-    local source = slots[fromKey]
-    local destination = slots[toKey]
+    local source = data.Slots[from]
+    local target = data.Slots[to]
     if not source then
         return false, "O slot de origem está vazio."
     end
-    if destination and destination.Id == source.Id then
-        local quantity = math.min(source.Count, Items.Catalog[source.Id].Stack - destination.Count)
-        if quantity == 0 then
+
+    local maximum = Items.Catalog[source.Id].Stack
+    if quantity ~= nil then
+        if type(quantity) ~= "number" or quantity % 1 ~= 0 or quantity < 1 or quantity >= source.Count
+            or target then
+            return false, "Divida uma pilha usando um slot vazio."
+        end
+        data.Slots[to] = { Id = source.Id, Count = quantity }
+        source.Count -= quantity
+    elseif target and target.Id == source.Id and maximum > 1 then
+        local moved = math.min(source.Count, maximum - target.Count)
+        if moved == 0 then
             return false, "A pilha de destino está cheia."
         end
-        destination.Count += quantity
-        source.Count -= quantity
+        target.Count += moved
+        source.Count -= moved
         if source.Count == 0 then
-            slots[fromKey] = nil
+            data.Slots[from] = nil
         end
     else
-        slots[fromKey], slots[toKey] = destination, source
+        data.Slots[from], data.Slots[to] = target, source
     end
     return true, "Inventário atualizado."
 end
 
--- Aquisição somente por módulos do servidor. A operação é atômica na sessão.
 function Inventory.Grant(player, itemId, quantity)
     local data = Profiles.Get(player)
     local definition = if type(itemId) == "string" then Items.Catalog[itemId] else nil
-    if not data or not definition or type(quantity) ~= "number"
-        or quantity % 1 ~= 0 or quantity < 1 then
-        return false
+    return data ~= nil and definition ~= nil and Inventory.CanHandle(player, data, definition)
+        and Rules.Grant(data, itemId, quantity)
+end
+
+function Inventory.Discard(data, key, amount)
+    local slot = data.Slots[key]
+    if not slot or type(amount) ~= "number" or amount % 1 ~= 0 or amount < 1 or amount > slot.Count then
+        return false, "Quantidade inválida."
     end
-    if Inventory.Weight(data.Slots) + definition.Grams * quantity > Items.MaxGrams then
-        return false
+    slot.Count -= amount
+    if slot.Count == 0 then
+        data.Slots[key] = nil
+    end
+    if not Rules.Validate(data) then
+        slot.Count += amount
+        data.Slots[key] = slot
+        return false, "Retire a mochila equipada antes de removê-la e libere espaço."
+    end
+    return true, "Item removido."
+end
+
+function Inventory.Action(player, operation, index, amount)
+    local data = Profiles.Get(player)
+    local key = data and Rules.Index(data, index)
+    local slot = key and data.Slots[key]
+    if not slot then
+        return false, "Item indisponível."
+    end
+    if operation == "discard" then
+        return Inventory.Discard(data, key, amount)
     end
 
-    local remaining = quantity
-    local changes = {}
-    for index = 1, Items.Slots do
-        local key = tostring(index)
-        local slot = data.Slots[key]
-        if slot and slot.Id == itemId then
-            local added = math.min(remaining, definition.Stack - slot.Count)
-            changes[key] = { Id = itemId, Count = slot.Count + added }
-            remaining -= added
+    local definition = Items.Catalog[slot.Id]
+    if not Inventory.CanHandle(player, data, definition) then
+        return false, "Equipamento reservado à carreira autorizada."
+    end
+    if slot.Id == "mochila" then
+        local previous = data.Backpack
+        data.Backpack = not previous
+        if not Rules.Validate(data) then
+            data.Backpack = previous
+            return false, "Libere peso e os slots adicionais antes de retirar a mochila."
         end
+        return true, if data.Backpack then "Mochila equipada." else "Mochila retirada."
     end
-    for index = 1, Items.Slots do
-        if remaining == 0 then
-            break
+    if definition.Heal then
+        local model = player.Character
+        local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+        if not humanoid or humanoid.Health <= 0 or humanoid.Health >= humanoid.MaxHealth then
+            return false, "Use o kit quando estiver ferido e consciente."
         end
-        local key = tostring(index)
-        if not data.Slots[key] then
-            local added = math.min(remaining, definition.Stack)
-            changes[key] = { Id = itemId, Count = added }
-            remaining -= added
+        local consumed, reason = Inventory.Discard(data, key, 1)
+        if not consumed then
+            return false, reason
         end
+        humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + definition.Heal)
+        return true, "Kit médico usado."
     end
-    if remaining > 0 then
-        return false
-    end
-    for key, slot in pairs(changes) do
-        data.Slots[key] = slot
-    end
-    return true
+    return false, "Este item ainda não tem uma ação de uso."
 end
 
 return Inventory
