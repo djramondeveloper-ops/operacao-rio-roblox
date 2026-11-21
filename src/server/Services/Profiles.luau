@@ -39,10 +39,10 @@ local function decode(data)
     local slots = {}
     local grams = 0
     for key, slot in pairs(data.Slots) do
-        local index = tonumber(key)
+        local index = if type(key) == "string" then tonumber(key) else nil
         local definition = if type(slot) == "table" and type(slot.Id) == "string"
             then Items.Catalog[slot.Id] else nil
-        if type(key) ~= "string" or not index or index % 1 ~= 0
+        if not index or index % 1 ~= 0
             or index < 1 or index > Items.Slots or tostring(index) ~= key
             or not definition or type(slot.Count) ~= "number" or slot.Count % 1 ~= 0
             or slot.Count < 1 or slot.Count > definition.Stack then
@@ -77,7 +77,7 @@ local function save(session, release)
 
     session.Busy = true
     local ok, result = pcall(update, session.Key, function(record)
-        if not record or record.Owner ~= session.Token then
+        if type(record) ~= "table" or record.Owner ~= session.Token then
             return nil
         end
         if release then

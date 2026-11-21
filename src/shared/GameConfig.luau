@@ -11,6 +11,17 @@ GameConfig.Communities = {
     "Morro do Borel",
 }
 
+-- IDs estáveis para futuras zonas do mapa, independentes dos rótulos exibidos.
+GameConfig.CommunityIds = {
+    "alemao",
+    "rocinha",
+    "cidade_de_deus",
+    "vidigal",
+    "jacarezinho",
+    "vila_cruzeiro",
+    "borel",
+}
+
 GameConfig.Organizations = { "PMERJ", "BOPE" }
 GameConfig.Territory = {
     MinimumAttackers = 3,

@@ -9,7 +9,8 @@ local instances = {}
 
 local function canJoin(player, team)
     local allowlist = Settings.PoliceAccess[team.Id]
-    return team.Public == true or RunService:IsStudio() or (allowlist and allowlist[player.UserId] == true)
+    local studioAccess = Settings.StudioOpenPoliceTeams and RunService:IsStudio()
+    return team.Public == true or studioAccess or (allowlist ~= nil and allowlist[player.UserId] == true)
 end
 
 function Teams.Start()
