@@ -2,8 +2,7 @@ local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Items = require(ReplicatedStorage.Shared.Items)
+local Schema = require(script.Parent.ProfileSchema)
 local Settings = require(script.Parent.Parent.Settings)
 
 local LEASE = 180
@@ -30,46 +29,8 @@ local function update(key, transform)
     return nextValue
 end
 
-local function decode(data)
-    if type(data) ~= "table" or data.Version ~= 1 or type(data.Slots) ~= "table"
-        or type(data.Team) ~= "string" then
-        return nil
-    end
-
-    local slots = {}
-    local grams = 0
-    for key, slot in pairs(data.Slots) do
-        local index = if type(key) == "string" then tonumber(key) else nil
-        local definition = if type(slot) == "table" and type(slot.Id) == "string"
-            then Items.Catalog[slot.Id] else nil
-        if not index or index % 1 ~= 0
-            or index < 1 or index > Items.Slots or tostring(index) ~= key
-            or not definition or type(slot.Count) ~= "number" or slot.Count % 1 ~= 0
-            or slot.Count < 1 or slot.Count > definition.Stack then
-            return nil
-        end
-        slots[key] = { Id = slot.Id, Count = slot.Count }
-        grams += definition.Grams * slot.Count
-    end
-    if grams > Items.MaxGrams then
-        return nil
-    end
-    return { Version = 1, Team = data.Team, Slots = slots }
-end
-
-local function newData()
-    return {
-        Version = 1,
-        Team = "civil",
-        Slots = {
-            ["1"] = { Id = "agua", Count = 2 },
-            ["2"] = { Id = "lanche", Count = 1 },
-        },
-    }
-end
-
-local function save(session, release)
-    local snapshot = decode(session.Data)
+local function save(session, release, data)
+    local snapshot = Schema.Decode(Schema.Copy(data or session.Data))
     if not snapshot then
         warn("[OPERAÇÃO RIO] Perfil em memória inválido", session.Key)
         return false, false
@@ -107,7 +68,7 @@ local function close(player, session)
     while session.Busy do
         task.wait()
     end
-    if session.Data then
+    if session.Data and not session.Uncertain then
         for attempt = 1, 3 do
             local saved, ownershipLost = save(session, true)
             if saved or ownershipLost then
@@ -121,12 +82,74 @@ local function close(player, session)
     sessions[player] = nil
 end
 
-function Profiles.Get(player)
+local function usable(player)
     local session = sessions[player]
-    if session and not session.Closing and session.Expires and session.Expires > os.time() then
-        return session.Data
+    if session and not session.Closing and not session.Frozen and session.Expires
+        and session.Expires > os.time() then
+        return session
     end
     return nil
+end
+
+function Profiles.GetAccount(player)
+    local session = usable(player)
+    return if session then session.Data else nil
+end
+
+function Profiles.Get(player)
+    local session = usable(player)
+    if session and session.ActiveId then
+        for _, character in ipairs(session.Data.Characters) do
+            if character.Id == session.ActiveId then
+                return character
+            end
+        end
+    end
+    return nil
+end
+
+function Profiles.SetActive(player, characterId)
+    local session = usable(player)
+    if not session then
+        return false
+    end
+    if characterId == nil then
+        session.ActiveId = nil
+        return true
+    end
+    for _, character in ipairs(session.Data.Characters) do
+        if character.Id == characterId then
+            session.ActiveId = characterId
+            return true
+        end
+    end
+    return false
+end
+
+-- Criação e exclusão só são confirmadas depois da gravação do novo perfil.
+function Profiles.Commit(player, mutate)
+    local session = usable(player)
+    if not session or session.Busy then
+        return false, "Perfil ocupado. Tente de novo em instantes."
+    end
+    local candidate = Schema.Copy(session.Data)
+    local accepted, message = mutate(candidate)
+    if not accepted then
+        return false, message
+    end
+    session.Frozen = true
+    local saved = save(session, false, candidate)
+    if not saved then
+        session.Uncertain = true
+        session.Expires = 0
+        if player.Parent == Players then
+            player:Kick("Não foi possível confirmar a gravação. Reconecte para consultar seu perfil.")
+        end
+        return false, "Gravação indisponível."
+    end
+    session.Data = candidate
+    session.Frozen = false
+    return true, message
 end
 
 local function loadPlayer(player, onLoaded)
@@ -155,14 +178,14 @@ local function loadPlayer(player, onLoaded)
                 and (type(current.Expires) ~= "number" or current.Expires > now) then
                 return nil
             end
-            local data = if current == nil then newData() else decode(current.Data)
+            local data = if current == nil then Schema.New() else Schema.Decode(current.Data)
             if not data then
                 return nil
             end
             return { Data = data, Owner = session.Token, Expires = now + LEASE }
         end)
         if ok and record then
-            session.Data = decode(record.Data)
+            session.Data = Schema.Decode(Schema.Copy(record.Data))
             session.Expires = record.Expires
             break
         end
@@ -179,7 +202,7 @@ local function loadPlayer(player, onLoaded)
     end
     if shuttingDown or player.Parent ~= Players then
         close(player, session)
-    elseif Profiles.Get(player) then
+    elseif Profiles.GetAccount(player) then
         onLoaded(player, session.Data)
     else
         sessions[player] = nil
@@ -207,7 +230,7 @@ function Profiles.Start(onLoaded)
                 break
             end
             for player, session in pairs(sessions) do
-                if session.Data and not session.Busy and not session.Closing then
+                if session.Data and not session.Busy and not session.Closing and not session.Frozen then
                     task.spawn(function()
                         if session.Closing then
                             return

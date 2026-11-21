@@ -1,17 +1,10 @@
 local RobloxTeams = game:GetService("Teams")
-local RunService = game:GetService("RunService")
 local Config = require(game:GetService("ReplicatedStorage").Shared.TeamsConfig)
 local Profiles = require(script.Parent.Profiles)
-local Settings = require(script.Parent.Parent.Settings)
+local Careers = require(script.Parent.Careers)
 
 local Teams = {}
 local instances = {}
-
-local function canJoin(player, team)
-    local allowlist = Settings.PoliceAccess[team.Id]
-    local studioAccess = Settings.StudioOpenPoliceTeams and RunService:IsStudio()
-    return team.Public == true or studioAccess or (allowlist ~= nil and allowlist[player.UserId] == true)
-end
 
 function Teams.Start()
     for _, team in ipairs(Config) do
@@ -31,7 +24,7 @@ end
 function Teams.Available(player)
     local result = {}
     for _, team in ipairs(Config) do
-        result[team.Id] = canJoin(player, team) == true
+        result[team.Id] = Careers.CanJoin(player, team.Id)
     end
     return result
 end
@@ -39,7 +32,12 @@ end
 local function apply(player, data, id)
     player.Team = instances[id]
     player.Neutral = false
-    data.Team = id
+    Careers.Enter(data, id)
+end
+
+function Teams.Clear(player)
+    player.Team = nil
+    player.Neutral = true
 end
 
 function Teams.Restore(player, data)
