@@ -3,6 +3,7 @@ local Items = require(Shared.Items)
 local Appearance = require(Shared.Appearance)
 local Careers = require(script.Parent.Careers)
 local InventoryRules = require(script.Parent.InventoryRules)
+local Economy = require(script.Parent.Economy)
 
 local Schema = {}
 
@@ -60,7 +61,7 @@ function Schema.NewCharacter(id, first, last, appearance, legacy)
         Appearance = appearance,
         Team = team,
         Careers = { [team] = 1 },
-        Cash = 0,
+        Cash = 150,
         Bank = 0,
         Slots = if legacy then legacy.Slots else starterInventory().Slots,
         Garage = {},
@@ -99,7 +100,8 @@ function Schema.Decode(data)
             or not character.Careers[character.Team] or not validMoney(character.Cash)
             or not validMoney(character.Bank) or type(character.Garage) ~= "table"
             or type(character.Progress) ~= "table"
-            or type(character.Slots) ~= "table" or not InventoryRules.Validate(character) then
+            or type(character.Slots) ~= "table" or not InventoryRules.Validate(character)
+            or not Economy.ValidLedger(character) then
             return nil
         end
         for organization, rank in pairs(character.Careers) do

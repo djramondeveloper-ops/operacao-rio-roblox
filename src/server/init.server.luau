@@ -3,6 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 Players.CharacterAutoLoads = false
 
+local Settings = require(script.Settings)
+local Commerce = require(script.Services.Commerce)
 local Characters = require(script.Services.Characters)
 local Profiles = require(script.Services.Profiles)
 local Inventory = require(script.Services.Inventory)
@@ -13,6 +15,7 @@ local activeRequests = {}
 
 Teams.Start()
 Characters.Start()
+Commerce.Start(Settings.StudioCommerceTerminals)
 Profiles.Start(function(player)
     player:SetAttribute("ProfileReady", true)
 end)
@@ -20,7 +23,11 @@ end)
 local request = Instance.new("RemoteFunction")
 request.Name = "OperacaoRioRequest"
 local function handle(player, action, first, second, third)
-    if action == "characters" then
+    if action == "commerceRead" then
+        return Commerce.Read(player, first)
+    elseif action == "commerceTransact" then
+        return Commerce.Transact(player, first)
+    elseif action == "characters" then
         local list = Characters.List(player)
         return { Characters = list, Message = if list then nil else "Carregando seu perfil…" }
     elseif action == "createCharacter" or action == "deleteCharacter"
@@ -77,7 +84,7 @@ request.OnServerInvoke = function(player, action, first, second, third)
     if type(action) ~= "string" then
         return { Message = "Ação inválida." }
     end
-    nextRequest[player] = now + (if action == "createCharacter" then 2 else 0.25)
+    nextRequest[player] = now + (if action == "createCharacter" then 2 elseif action == "commerceTransact" then 1 else 0.25)
     activeRequests[player] = true
     local ok, result = pcall(handle, player, action, first, second, third)
     activeRequests[player] = nil
