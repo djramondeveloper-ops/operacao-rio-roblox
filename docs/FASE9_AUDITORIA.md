@@ -8,7 +8,7 @@ A candidata cobre a fundação, o fluxo de personagens e parte da Fase 3. Ela po
 | --- | --- | --- |
 | Mapeamento Rojo | Aprovado com evidência | O Rojo 7.7.1 gerou o arquivo da experiência e o sourcemap |
 | Sintaxe Luau | Aprovado com evidência | Os 24 arquivos de src compilaram no Luau Web |
-| Perfil e migração | Aguardando teste no Studio | Migração e isolamento passaram em teste de regras. DataStore e concorrência real aguardam teste |
+| Perfil e migração | Aguardando teste no Studio | Migração e isolamento passaram em teste de regras. Concorrência e falha ambígua passaram com DataStore substituto. A API real aguarda teste |
 | Menu, editor R15, HUD e spawn | Aguardando teste no Studio | Fluxo integra remotes, perfil ativo e criação do avatar. Interface e câmera aguardam inspeção |
 | Inventário | Parcial | Pilhas, mochila, capacidade e isolamento têm evidência isolada. Transferências, depósitos e cofres ausentes |
 | Banco e comércio | Parcial | Regras de saldo, reenvio e cópia candidata testadas. Transferências e assinaturas de operações entre perfis ainda ausentes |
@@ -29,7 +29,7 @@ A candidata cobre a fundação, o fluxo de personagens e parte da Fase 3. Ela po
 
 ## Evidência e validação pendente
 
-Foram executados compilação da árvore Luau, build e sourcemap Rojo, revisão de whitespace do Git e sete cenários automatizados. Os testes automatizados exercitam regras de negócio com substitutos locais para serviços Roblox. A validação no Studio deve cobrir filtro de texto, criação e respawn R15, layout em retrato e paisagem, toque, dois clientes, concorrência de compras, acesso real ao DataStore e desligamento do servidor. Consulte os [testes de personagens](testes-personagens.md) e o [roteiro de comércio](testes-comercio.md).
+Foram executados compilação da árvore Luau, build e sourcemap Rojo, revisão de whitespace do Git e nove cenários automatizados. Os testes automatizados exercitam regras de negócio com substitutos locais para serviços Roblox. A validação no Studio deve cobrir filtro de texto, criação e respawn R15, layout em retrato e paisagem, toque, dois clientes, concorrência de compras, acesso real ao DataStore e desligamento do servidor. Consulte os [testes de personagens](testes-personagens.md) e o [roteiro de comércio](testes-comercio.md).
 
 Antes de liberar transferências entre contas, implemente reconciliação idempotente entre registros e teste quedas durante as etapas de débito e crédito. A economia atual grava apenas no perfil do ator.
 

@@ -99,4 +99,53 @@ test("candidato rejeitado não consome dinheiro nem itens do perfil original", f
     assert(Schema.Decode({ Version = 2, Characters = { original } }))
 end)
 
+local function player(userId)
+    return {
+        Parent = players,
+        UserId = userId,
+        Kick = function(self)
+            self.Kicked = true
+        end,
+    }
+end
+
+test("dois servidores não abrem o mesmo perfil em concorrência", function()
+    local first = newProfileService()
+    local second = newProfileService()
+    first.Start(function() end)
+    second.Start(function() end)
+    local original, duplicate = player(101), player(101)
+    players.added[1](original)
+    players.added[2](duplicate)
+    assert(first.GetAccount(original))
+    assert(second.GetAccount(duplicate) == nil and duplicate.Kicked)
+    players.removing[1](original)
+    assert(records.player_101.Owner == nil)
+    local nextPlayer = player(101)
+    players.added[2](nextPlayer)
+    assert(second.GetAccount(nextPlayer))
+end)
+
+test("falha ambígua de gravação não reverte a transação persistida", function()
+    local first = newProfileService()
+    local second = newProfileService()
+    first.Start(function() end)
+    second.Start(function() end)
+    local original = player(102)
+    players.added[3](original)
+    failAfterWrite = true
+    local ok = first.Commit(original, function(account)
+        table.insert(account.Characters, character("salvo"))
+        return true
+    end)
+    failAfterWrite = false
+    assert(not ok and original.Kicked and first.GetAccount(original) == nil)
+    players.removing[3](original)
+    assert(records.player_102.Data.Characters[1].Id == "salvo")
+    clock += 181
+    local reconnect = player(102)
+    players.added[4](reconnect)
+    assert(second.GetAccount(reconnect).Characters[1].Id == "salvo")
+end)
+
 return tests

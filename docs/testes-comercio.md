@@ -10,7 +10,7 @@ node tests/run-rules.mjs /tmp/operacao-verificacao/node_modules/luau-web/src/ind
 rojo build -o OperacaoRio.rbxlx
 ```
 
-A suíte carrega os módulos Luau do projeto com substitutos explícitos para serviços do Roblox. Asserções cobrem migração, isolamento, permissões, pilhas, slots, mochila, repetição de transação e preservação do perfil após uma compra rejeitada.
+A suíte carrega os módulos Luau do projeto com substitutos explícitos para serviços do Roblox. Asserções cobrem migração, isolamento, permissões, pilhas, slots, mochila, repetição de transação e preservação do perfil após uma compra rejeitada. Dois cenários exercitam o serviço de perfil com DataStore substituto, incluindo concorrência e perda da resposta após a gravação.
 
 ## Banco e lojas no Studio
 
