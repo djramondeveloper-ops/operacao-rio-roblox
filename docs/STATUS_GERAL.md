@@ -11,3 +11,4 @@
 | 7 | Facções e baques | Pendente | Duas equipes fictícias e parâmetros territoriais | Pendente | Gestão persistente, território, baques, cofres e ranking |
 | 8 | Bailes e vida social | Pendente | Celular no catálogo | Pendente | Locais, DJ, áudio, social, propriedades e empregos |
 | 9 | Auditoria geral | Parcial | Revisão da candidata disponível em [FASE9_AUDITORIA.md](FASE9_AUDITORIA.md) | Compilação, Rojo e 9 cenários de regras | Studio, sistemas futuros e auditoria visual |
+| Admin | Painel Supremo do Fundador | Implementado, não testado no Studio | Personagens, economia, inventário, equipes, DataStore administrativo e moderação oficial | Nove cenários administrativos com substitutos locais, regressões Luau e build Rojo | Testes Roblox reais e integração futura com veículos, hierarquias de organizações, territórios e eventos |
