@@ -123,9 +123,24 @@ local gridLayout = Instance.new("UIGridLayout")
 gridLayout.CellSize = UDim2.new(1 / 3, -6, 0, 48)
 gridLayout.CellPadding = UDim2.fromOffset(8, 8)
 gridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+gridLayout.FillDirectionMaxCells = 3
 gridLayout.Parent = grid
 
-heading("Equipes", 3)
+local itemInfo = heading("Selecione um item para ver os detalhes.", 3)
+itemInfo.Size = UDim2.new(1, 0, 0, 52)
+local tools = Instance.new("Frame")
+tools.Size = UDim2.new(1, 0, 0, 50)
+tools.BackgroundTransparency = 1
+tools.LayoutOrder = 4
+tools.Parent = content
+local useButton = button(tools, "Usar")
+local splitButton = button(tools, "Dividir")
+local discardButton = button(tools, "Descartar")
+for index, object in ipairs({ useButton, splitButton, discardButton }) do
+    object.Size = UDim2.new(1 / 3, -5, 0, 44)
+    object.Position = UDim2.fromScale((index - 1) / 3, 0)
+end
+heading("Equipes", 5)
 local status = textControl("TextLabel", panel, "Carregando seu perfil…", 14)
 status.Position = UDim2.new(0, 12, 1, -53)
 status.Size = UDim2.new(1, -24, 0, 44)
@@ -134,6 +149,13 @@ local slots = {}
 local teamButtons = {}
 local state
 local selected
+local splitting = false
+local discardConfirmation
+local drag
+useButton.Visible = false
+splitButton.Visible = false
+discardButton.Visible = false
+local ignoreClickUntil = 0
 local busy = false
 local nextInvoke = 0
 
@@ -141,13 +163,23 @@ local function render()
     if not state then
         return
     end
-    weight.Text = ("Inventário · %.2f / %.2f kg"):format(state.Grams / 1000, Items.MaxGrams / 1000)
+    weight.Text = ("Inventário · %.2f / %.2f kg"):format(state.Grams / 1000, state.MaxGrams / 1000)
     for index, object in ipairs(slots) do
+        object.Visible = index <= state.MaxSlots
         local slot = state.Slots[tostring(index)]
         object.Text = if slot then ("%d · %s ×%d"):format(index, Items.Catalog[slot.Id].Name, slot.Count)
             else ("%d · Vazio"):format(index)
         object.BackgroundColor3 = if selected == index then accent else control
     end
+    local item = selected and state.Slots[tostring(selected)]
+    local definition = item and Items.Catalog[item.Id]
+    itemInfo.Text = if definition then definition.Category .. " · " .. definition.Description
+        .. (if item.Durability ~= nil then (" Durabilidade: %d%%"):format(item.Durability) else "")
+        else "Selecione um item para ver os detalhes."
+    useButton.Visible = definition ~= nil and (item.Id == "mochila" or definition.Heal ~= nil)
+    splitButton.Visible = item ~= nil and item.Count > 1
+    discardButton.Visible = item ~= nil
+    discardButton.Text = if discardConfirmation then "Confirmar" else "Descartar"
     for _, team in ipairs(Teams) do
         local object = teamButtons[team.Id]
         local active = state.Team == team.Id
@@ -159,13 +191,13 @@ local function render()
     end
 end
 
-local function invoke(action, first, second)
+local function invoke(action, first, second, third)
     if busy or os.clock() < nextInvoke then
         return
     end
     busy = true
     local ok, response = pcall(function()
-        return request:InvokeServer(action, first, second)
+        return request:InvokeServer(action, first, second, third)
     end)
     nextInvoke = os.clock() + 0.25
     busy = false
@@ -180,12 +212,64 @@ local function invoke(action, first, second)
     status.Text = response.Message or "Escolha um item e depois o slot de destino."
 end
 
-for index = 1, Items.Slots do
+local function clearSelection()
+    selected = nil
+    splitting = false
+    discardConfirmation = nil
+end
+
+local function move(origin, destination, quantity)
+    clearSelection()
+    render()
+    invoke("move", origin, destination, quantity)
+end
+
+useButton.Activated:Connect(function()
+    if selected and not busy and os.clock() >= nextInvoke then
+        local index = selected
+        clearSelection()
+        invoke("use", index)
+    end
+end)
+
+splitButton.Activated:Connect(function()
+    if selected and not busy then
+        splitting = true
+        discardConfirmation = nil
+        status.Text = "Escolha um slot vazio para receber metade da pilha."
+        render()
+    end
+end)
+
+discardButton.Activated:Connect(function()
+    if not selected or busy or os.clock() < nextInvoke then
+        return
+    end
+    if discardConfirmation == selected then
+        local index = selected
+        clearSelection()
+        invoke("discard", index, 1)
+    else
+        discardConfirmation = selected
+        splitting = false
+        status.Text = "Confirme para descartar uma unidade."
+        render()
+    end
+end)
+
+for index = 1, Items.Slots + Items.BackpackSlots do
     local object = button(grid, tostring(index))
     object.LayoutOrder = index
     slots[index] = object
+    object.Visible = index <= Items.Slots
+    object.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and state
+            and state.Slots[tostring(index)] and not busy then
+            drag = { Index = index, Position = input.Position }
+        end
+    end)
     object.Activated:Connect(function()
-        if not state or busy then
+        if not state or busy or os.clock() < ignoreClickUntil then
             return
         end
         if not selected then
@@ -194,21 +278,42 @@ for index = 1, Items.Slots do
                 status.Text = "Escolha o slot de destino."
             end
         elseif index == selected then
-            selected = nil
+            clearSelection()
             status.Text = "Escolha um item e depois o slot de destino."
         elseif os.clock() >= nextInvoke then
-            local origin = selected
-            selected = nil
-            render()
-            invoke("move", origin, index)
+            local quantity = if splitting then math.floor(state.Slots[tostring(selected)].Count / 2) else nil
+            move(selected, index, quantity)
         end
         render()
     end)
 end
 
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not drag then
+        return
+    end
+    local origin = drag
+    drag = nil
+    if not panel.Visible or (input.Position - origin.Position).Magnitude < 12 then
+        return
+    end
+    ignoreClickUntil = os.clock() + 0.1
+    if not state or busy or os.clock() < nextInvoke then
+        return
+    end
+    local objects = gui.Parent:GetGuiObjectsAtPosition(input.Position.X, input.Position.Y)
+    for _, hit in ipairs(objects) do
+        local destination = table.find(slots, hit)
+        if destination and destination ~= origin.Index then
+            move(origin.Index, destination)
+            break
+        end
+    end
+end)
+
 for index, team in ipairs(Teams) do
     local object = button(content, team.Name)
-    object.LayoutOrder = index + 3
+    object.LayoutOrder = index + 5
     object.Size = UDim2.new(1, 0, 0, 44)
     teamButtons[team.Id] = object
     object.Activated:Connect(function()
@@ -224,7 +329,8 @@ local function setOpen(open)
     end
     panel.Visible = open
     toggle.Visible = not open
-    selected = nil
+    clearSelection()
+    drag = nil
     render()
     if open then
         invoke("state")
