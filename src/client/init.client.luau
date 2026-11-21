@@ -15,6 +15,7 @@ end
 local Theme = require(script.Theme)
 require(script.CharacterMenu).Start(request)
 require(script.Hud).Start(request)
+require(script.CommercePanel).Start(request)
 
 local surface = Theme.Graphite
 local control = Theme.Surface
