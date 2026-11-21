@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 Players.CharacterAutoLoads = false
 
 local Settings = require(script.Settings)
+local AdminService = require(script.Admin.Service)
 local Commerce = require(script.Services.Commerce)
 local Characters = require(script.Services.Characters)
 local Profiles = require(script.Services.Profiles)
@@ -14,6 +15,7 @@ local nextRequest = {}
 local activeRequests = {}
 
 Teams.Start()
+AdminService.Start()
 Characters.Start()
 Commerce.Start(Settings.StudioCommerceTerminals)
 Profiles.Start(function(player)

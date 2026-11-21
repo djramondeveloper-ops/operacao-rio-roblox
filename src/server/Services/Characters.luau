@@ -155,7 +155,7 @@ local function spawnCharacter(player, character)
     deathConnections[player] = humanoid.Died:Once(function()
         task.delay(Players.RespawnTime, function()
             local active = Profiles.Get(player)
-            if player.Parent == Players and active and active.Id == character.Id then
+            if player.Parent == Players and active and active.Id == character.Id and player.Character == model and not spawning[player] then
                 if not spawnCharacter(player, active) and player.Parent == Players then
                     Characters.ReturnToMenu(player)
                 end
@@ -180,6 +180,21 @@ function Characters.Select(player, id)
     end
     Characters.PublishIdentity(player)
     return true, "Bem-vindo à cidade."
+end
+
+function Characters.Revive(player)
+    local character = Profiles.Get(player)
+    local model = player.Character
+    local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+    if not character or spawning[player] or not humanoid or humanoid.Health > 0 then
+        return false, "O personagem precisa estar morto e disponível."
+    end
+    if not spawnCharacter(player, character) then
+        Characters.ReturnToMenu(player)
+        return false, "Falha ao renascer o personagem."
+    end
+    Characters.PublishIdentity(player)
+    return true, "Personagem renascido."
 end
 
 function Characters.ReturnToMenu(player)

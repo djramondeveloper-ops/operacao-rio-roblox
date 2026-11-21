@@ -12,6 +12,7 @@ if not request:IsA("RemoteFunction") then
     error("OperacaoRioRequest precisa ser uma RemoteFunction.")
 end
 
+task.spawn(require(script.AdminPanel).Start)
 local Theme = require(script.Theme)
 require(script.CharacterMenu).Start(request)
 require(script.Hud).Start(request)
