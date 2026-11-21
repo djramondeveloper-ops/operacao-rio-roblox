@@ -165,10 +165,13 @@ function CommercePanel.Start(request)
                 transact("purchase", { Item = itemId })
             end)
         end
-        local slot = input("Número do slot para venda")
-        Theme.Button(content, "Vender uma unidade por metade do preço", function()
-            transact("sale", { Slot = tonumber(slot.Text) })
-        end)
+        for _, offer in ipairs(state.Offers) do
+            Theme.Button(content, ("Vender %s do slot %d · R$ %d"):format(
+                Items.Catalog[offer.Item].Name, offer.Slot, offer.Price
+            ), function()
+                transact("sale", { Slot = offer.Slot, Item = offer.Item })
+            end)
+        end
     end
 
     PromptService.PromptTriggered:Connect(function(prompt, source)
@@ -194,6 +197,7 @@ function CommercePanel.Start(request)
         end
     end)
     player:GetAttributeChangedSignal("ActiveCharacterId"):Connect(close)
+    return gui
 end
 
 return CommercePanel

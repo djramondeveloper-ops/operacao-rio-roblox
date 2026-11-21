@@ -15,7 +15,7 @@ end
 local Theme = require(script.Theme)
 require(script.CharacterMenu).Start(request)
 require(script.Hud).Start(request)
-require(script.CommercePanel).Start(request)
+local commerceGui = require(script.CommercePanel).Start(request)
 
 local surface = Theme.Graphite
 local control = Theme.Surface
@@ -325,7 +325,7 @@ for index, team in ipairs(Teams) do
 end
 
 local function setOpen(open)
-    if open and not gui.Enabled then
+    if open and (not gui.Enabled or commerceGui.Enabled) then
         return
     end
     panel.Visible = open
@@ -348,10 +348,24 @@ local function updatePresence()
     gui.Enabled = player:GetAttribute("ActiveCharacterId") ~= nil
     if not gui.Enabled then
         state = nil
+        weight.Text = "Inventário"
+        for _, object in ipairs(slots) do
+            object.Text = ""
+        end
+        itemInfo.Text = ""
+        useButton.Visible = false
+        splitButton.Visible = false
+        discardButton.Visible = false
         setOpen(false)
     end
 end
 player:GetAttributeChangedSignal("ActiveCharacterId"):Connect(updatePresence)
+commerceGui:GetPropertyChangedSignal("Enabled"):Connect(function()
+    if commerceGui.Enabled then
+        setOpen(false)
+        state = nil
+    end
+end)
 updatePresence()
 
 UserInputService.InputBegan:Connect(function(input, processed)

@@ -34,8 +34,22 @@ function Commerce.Read(player, id)
     if not data or not nearby(player, id) then
         return { Ok = false, Message = "Aproxime-se do estabelecimento." }
     end
+    local offers = {}
+    local catalog = Config[id].Catalog
+    if catalog then
+        local slots = Rules.Limits(data)
+        for index = 1, slots do
+            local slot = data.Slots[tostring(index)]
+            if slot and catalog[slot.Id] then
+                table.insert(offers, {
+                    Slot = index, Item = slot.Id, Price = math.max(1, math.floor(catalog[slot.Id] / 2)),
+                })
+            end
+        end
+    end
     return {
         Ok = true,
+        Offers = offers,
         Cash = data.Cash,
         Bank = if id == "bank" then data.Bank else nil,
         Sequence = (data.TransactionSequence or 0) + 1,
@@ -78,7 +92,7 @@ function Commerce.Transact(player, payload)
             end
             local key = Rules.Index(data, payload.Slot)
             local slot = key and data.Slots[key]
-            local price = slot and catalog[slot.Id]
+            local price = slot and slot.Id == payload.Item and catalog[slot.Id]
             if not price then
                 return false, "Esta loja não compra o item selecionado."
             end

@@ -41,3 +41,13 @@ A versão 2 do perfil incorpora os dados da versão 1 ao primeiro personagem cri
 A prévia e o cenário do menu usam peças originais e corpo R15 sem IDs de assets privados. Roupas e acessórios artísticos finais, áudio original, loja VIP, veículos e indicador de território permanecem pendentes. O valor de colete na HUD é zero até a integração de combate. O ajuste de movimento vale para a sessão atual.
 
 Consulte o [roteiro da Fase 2](docs/testes-personagens.md).
+
+## Fase 3 — Inventário, banco e comércio
+
+A mochila permite mover, empilhar, dividir e descartar itens. Use o mouse para arrastar ou selecione origem e destino por toque. Itens suportados mostram descrição, categoria e durabilidade quando aplicável. Kits médicos recuperam vida. Mochilas ampliam slots e peso enquanto equipadas.
+
+O banco executa depósitos, saques e consulta de extrato. As cinco lojas compram e vendem itens dos próprios catálogos, com preço e proximidade confirmados no servidor. Novos personagens recebem R$ 150 em dinheiro do jogo. As compras e vendas persistem inventário, saldo e transação na mesma gravação.
+
+No Studio, os terminais de teste aparecem perto do spawn da Baseplate. Para usar terminais próprios, desative `StudioCommerceTerminals` em Settings. Marque uma BasePart com a tag `OperacaoRioCommerce`, adicione um atributo de texto `CommerceId` correspondente a `CommerceConfig` e um `ProximityPrompt` com alcance de até 10 studs. A validação no servidor usa limite de 12 studs e exige avatar vivo.
+
+Consulte o [status por fase](docs/STATUS_GERAL.md), a [auditoria da candidata](docs/FASE9_AUDITORIA.md) e o [roteiro de inventário e comércio](docs/testes-comercio.md).
