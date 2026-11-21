@@ -1,6 +1,7 @@
 local modules = {}
 local records, online, bans, characters, instances = {}, {}, {}, {}, {}
 local failStore = false
+local uncertainCommit = false
 local time = 100
 local guid = 0
 local suspendedWrite
@@ -94,6 +95,9 @@ modules.Profiles = {
         local accepted, message = apply({ Characters = { data } })
         if accepted then
             characters[player.UserId] = data
+            if uncertainCommit then
+                return false, "Gravação indisponível.", true
+            end
         end
         return accepted, message
     end,

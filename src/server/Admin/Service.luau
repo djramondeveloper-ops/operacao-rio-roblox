@@ -219,9 +219,9 @@ local function handle(player, action, payload)
         end
         local invoke = if action == "role" then function() return roleChange(player, args) end
             else function() return Actions.Run(player, action, args, row.Id) end
-        local ok, success, message, data = pcall(invoke)
+        local ok, success, message, data, uncertain = pcall(invoke)
         row = table.clone(row)
-        row.Result = if not ok then "uncertain" elseif success then "ok" else "failed"
+        row.Result = if not ok or uncertain then "uncertain" elseif success then "ok" else "failed"
         local logged = pcall(Audit.Write, row)
         if not logged then
             warn("[OPERAÇÃO RIO] Não foi possível confirmar o resultado da ação", row.Id)

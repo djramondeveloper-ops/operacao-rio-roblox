@@ -108,4 +108,12 @@ test("duas ações simultâneas para o mesmo alvo", function()
     assert(ok, tostring(reason))
     assert(characters[ordinary.UserId].Cash == 125)
 end)
+test("resposta de gravação incerta é diferenciada de falha definitiva", function()
+    uncertainCommit = true
+    local result = confirm(founder, "givemoney", { Target = ordinary.UserId, Value = 10 })
+    uncertainCommit = false
+    assert(not result.Ok and characters[ordinary.UserId].Cash == 135)
+    local latest = records.audit_v1[#records.audit_v1]
+    assert(latest.Action == "givemoney" and latest.Result == "uncertain")
+end)
 return tests

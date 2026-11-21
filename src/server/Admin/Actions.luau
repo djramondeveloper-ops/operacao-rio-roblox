@@ -20,7 +20,7 @@ local function alter(target, action, args)
     if not active or active.Id ~= args.CharacterId then
         return false, "O personagem do alvo mudou. Inicie uma nova ação."
     end
-    local ok, message = Profiles.Commit(target, function(account)
+    local ok, message, uncertain = Profiles.Commit(target, function(account)
         for _, data in ipairs(account.Characters) do
             if data.Id ~= active.Id then
                 continue
@@ -71,6 +71,9 @@ local function alter(target, action, args)
         else
             target:SetAttribute("RoleCash", updated.Cash)
         end
+    end
+    if uncertain then
+        return false, "Gravação incerta. Confira o perfil antes de repetir.", nil, true
     end
     return ok, message
 end
