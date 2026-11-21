@@ -43,9 +43,9 @@ function Economy.Apply(data, sequence, kind, amount)
     elseif kind == "withdraw" then
         bank -= amount
         cash += amount
-    elseif kind == "purchase" then
+    elseif kind == "purchase" or kind == "admin_debit" then
         cash -= amount
-    elseif kind == "sale" or kind == "salary" then
+    elseif kind == "sale" or kind == "salary" or kind == "admin_credit" then
         cash += amount
     else
         return false, "Operação monetária inválida."

@@ -138,14 +138,14 @@ function Profiles.Commit(player, mutate)
         return false, message
     end
     session.Frozen = true
-    local saved = save(session, false, candidate)
+    local saved, ownershipLost = save(session, false, candidate)
     if not saved then
         session.Uncertain = true
         session.Expires = 0
         if player.Parent == Players then
             player:Kick("Não foi possível confirmar a gravação. Reconecte para consultar seu perfil.")
         end
-        return false, "Gravação indisponível."
+        return false, "Gravação indisponível.", not ownershipLost
     end
     session.Data = candidate
     session.Frozen = false

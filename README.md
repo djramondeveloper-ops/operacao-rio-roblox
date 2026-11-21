@@ -51,3 +51,9 @@ O banco executa depósitos, saques e consulta de extrato. As cinco lojas compram
 No Studio, os terminais de teste aparecem perto do spawn da Baseplate. Para usar terminais próprios, desative `StudioCommerceTerminals` em Settings. Marque uma BasePart com a tag `OperacaoRioCommerce`, adicione um atributo de texto `CommerceId` correspondente a `CommerceConfig` e um `ProximityPrompt` com alcance de até 10 studs. A validação no servidor usa limite de 12 studs e exige avatar vivo.
 
 Consulte o [status por fase](docs/STATUS_GERAL.md), a [auditoria da candidata](docs/FASE9_AUDITORIA.md) e o [roteiro de inventário e comércio](docs/testes-comercio.md).
+
+## Painel Supremo do Fundador
+
+O painel usa uma lista de Roblox UserIds configurada no servidor e inicia sem acesso habilitado. Depois de configurado, abra com **F8**, **/admin** ou pelo botão no celular. Operações sensíveis exigem confirmação e passam pela mesma autorização no painel e no chat.
+
+Consulte o [guia de configuração, permissões e comandos](docs/PAINEL_SUPREMO.md) e o [roteiro de testes administrativos](docs/testes-admin-studio.md). O painel ainda aguarda validação no Roblox Studio e em servidor de teste.
