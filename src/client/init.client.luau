@@ -12,10 +12,14 @@ if not request:IsA("RemoteFunction") then
     error("OperacaoRioRequest precisa ser uma RemoteFunction.")
 end
 
-local surface = Color3.fromRGB(23, 29, 39)
-local control = Color3.fromRGB(43, 54, 69)
-local accent = Color3.fromRGB(31, 105, 81)
-local white = Color3.fromRGB(245, 247, 250)
+local Theme = require(script.Theme)
+require(script.CharacterMenu).Start(request)
+require(script.Hud).Start(request)
+
+local surface = Theme.Graphite
+local control = Theme.Surface
+local accent = Theme.Blue
+local white = Theme.White
 
 local function rounded(parent, radius)
     local corner = Instance.new("UICorner")
@@ -215,6 +219,9 @@ for index, team in ipairs(Teams) do
 end
 
 local function setOpen(open)
+    if open and not gui.Enabled then
+        return
+    end
     panel.Visible = open
     toggle.Visible = not open
     selected = nil
@@ -230,6 +237,16 @@ end)
 close.Activated:Connect(function()
     setOpen(false)
 end)
+local function updatePresence()
+    gui.Enabled = player:GetAttribute("ActiveCharacterId") ~= nil
+    if not gui.Enabled then
+        state = nil
+        setOpen(false)
+    end
+end
+player:GetAttributeChangedSignal("ActiveCharacterId"):Connect(updatePresence)
+updatePresence()
+
 UserInputService.InputBegan:Connect(function(input, processed)
     if not processed and input.KeyCode == Enum.KeyCode.I then
         setOpen(not panel.Visible)
