@@ -52,7 +52,7 @@ local function discoverRoles()
 end
 
 local function roleChange(actor, args)
-    local key = tostring(args.Target)
+    local key = string.format("%.0f", args.Target)
     local newRoles = Persistence.Update("roles_v1", function(old)
         assert(old == nil or type(old) == "table", "Escala administrativa inválida")
         old = old or {}
@@ -170,13 +170,17 @@ local function handle(player, action, payload)
     if not args then
         return { Ok = false, Invalid = true, Message = "Parâmetros inválidos. Confira a sintaxe." }
     end
-    if args.Target and action ~= "logs" and not Permissions.CanTarget(id, args.Target, roleMap) then
+    if args.Target and action ~= "logs" and not Permissions.CanActOn(id, args.Target, roleMap, action) then
         return denied(player, action, { Target = args.Target })
     end
     if action == "role" and not Permissions.CanAssign(id, args.Target, args.Key, roleMap) then
         return denied(player, action, { Target = args.Target })
     end
     if confirmation[action] and not token then
+        local ready, reason = Actions.Pin(action, args)
+        if not ready then
+            return { Ok = false, Message = reason }
+        end
         token = HttpService:GenerateGUID(false)
         tickets[player] = { Token = token, Action = action, Args = args, Expiry = os.clock() + 30 }
         return { Ok = true, Token = token, Message = "Confirme a ação " .. action .. "." }
@@ -206,7 +210,7 @@ local function handle(player, action, payload)
         Audit.Write(row)
         local current = roles()
         local authorized = player.Parent == Players and Permissions.Allows(Permissions.Role(id, current), action)
-            and (not args.Target or Permissions.CanTarget(id, args.Target, current))
+            and (not args.Target or Permissions.CanActOn(id, args.Target, current, action))
         if not authorized then
             local refusal = table.clone(row)
             refusal.Result = "denied"

@@ -17,13 +17,20 @@ local god = setmetatable({}, { __mode = "k" })
 
 local function alter(target, action, args)
     local active = Profiles.Get(target)
-    if not active then
-        return false, "Alvo precisa de um personagem ativo."
+    if not active or active.Id ~= args.CharacterId then
+        return false, "O personagem do alvo mudou. Inicie uma nova ação."
     end
     local ok, message = Profiles.Commit(target, function(account)
         for _, data in ipairs(account.Characters) do
             if data.Id ~= active.Id then
                 continue
+            end
+            if action == "removeitem" then
+                local current = data.Slots[tostring(args.Slot)]
+                if not current or current.Id ~= args.ItemId or current.Count ~= args.ItemCount
+                    or current.Durability ~= args.ItemDurability then
+                    return false, "O conteúdo do slot mudou. Inicie uma nova ação."
+                end
             end
             if action == "giveitem" then
                 local item = Items.Catalog[args.Key]
@@ -72,6 +79,26 @@ local mutations = {
     setmoney = true, givemoney = true, removemoney = true, giveitem = true, removeitem = true, setteam = true,
 }
 local world = { announce = true, settime = true, setweather = true }
+
+function Actions.Pin(action, args)
+    if not mutations[action] then
+        return true
+    end
+    local target = Players:GetPlayerByUserId(args.Target)
+    local data = target and Profiles.Get(target)
+    if not data then
+        return false, "Alvo precisa de um personagem ativo."
+    end
+    args.CharacterId = data.Id
+    if action == "removeitem" then
+        local slot = data.Slots[tostring(args.Slot)]
+        if not slot then
+            return false, "Slot vazio."
+        end
+        args.ItemId, args.ItemCount, args.ItemDurability = slot.Id, slot.Count, slot.Durability
+    end
+    return true
+end
 
 function Actions.Run(actor, action, args, id)
     local target = args.Target and Players:GetPlayerByUserId(args.Target)

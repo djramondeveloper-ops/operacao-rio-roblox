@@ -173,10 +173,25 @@ function AdminPanel.Start()
             label("Nenhum registro encontrado.")
         end
         for _, row in ipairs(result.Audit or {}) do
-            label(("%s · %s · %s\nUserId %s → %s%s"):format(
+            local fields = {}
+            if row.Value then
+                table.insert(fields, if row.Action == "ban" then
+                    (if row.Value == -1 then "Permanente" else tostring(row.Value) .. " dia(s)") else tostring(row.Value))
+            end
+            if row.Key then
+                table.insert(fields, row.Key)
+            end
+            if row.Slot then
+                table.insert(fields, "Slot " .. tostring(row.Slot))
+            end
+            if row.Reason then
+                table.insert(fields, row.Reason)
+            end
+            label(("%s UTC · %s · %s\nUserId %s → %s%s"):format(
                 os.date("!%d/%m %H:%M", row.At), row.Action, row.Result,
-                tostring(row.Actor), tostring(row.Target or "—"), if row.Reason then "\n" .. row.Reason else ""
-            ), if row.Reason then 86 else 56)
+                tostring(row.Actor), tostring(row.Target or "—"),
+                if #fields > 0 then "\n" .. table.concat(fields, " · ") else ""
+            ), if #fields > 0 then 98 else 56)
         end
         if result.More and more then
             button("Próxima página", more)
