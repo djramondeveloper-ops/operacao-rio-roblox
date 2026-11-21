@@ -5,7 +5,7 @@ Os resultados abaixo são critérios de aceitação para execução manual.
 ## Servidor com dois clientes
 
 1. Confira no Explorer os mapeamentos `ReplicatedStorage.Shared`, `ServerScriptService.Server` e `StarterPlayer.StarterPlayerScripts.Client`.
-2. Inicie um servidor com dois jogadores. Abra a interface pelo botão e pela tecla **I**. Verifique o estado inicial Civil, os 12 slots, Água ×2, Lanche ×1 e 1,25 kg. Reinicie um personagem e confira que a interface continua acessível.
+2. Inicie um servidor com dois jogadores. Na Fase 2, siga primeiro o [roteiro de personagens](testes-personagens.md) para selecionar um personagem em cada sessão com conta real. Abra a interface pelo botão e pela tecla **I**. Verifique o estado inicial Civil, os 12 slots, Água ×2, Lanche ×1 e 1,25 kg. Reinicie um personagem e confira que a interface continua acessível.
 3. No primeiro cliente, mova a água para um slot vazio, troque água e lanche entre slots ocupados e escolha Aliança Aurora. No servidor, confira o objeto `Player.Team`. No segundo cliente, confira que a equipe e o inventário próprios continuam iguais.
 4. No emulador de dispositivos, teste os modos retrato e paisagem. Abra e feche pelo toque, role até a última equipe e mova um item entre slots.
 5. Configure `StudioOpenPoliceTeams = false`, deixe as listas vazias e reinicie a sessão. Verifique que PMERJ e BOPE ficam restritas. Configure um UserId real autorizado para testar com a conta correspondente em uma sessão de teste.

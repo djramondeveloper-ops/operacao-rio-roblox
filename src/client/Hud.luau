@@ -53,6 +53,7 @@ function Hud.Start(request)
     back.Size = UDim2.new(1, -16, 0, 40)
 
     local humanoid
+    local currentCharacter
     local healthChanged
     local function render()
         gui.Enabled = player:GetAttribute("ActiveCharacterId") ~= nil
@@ -65,6 +66,7 @@ function Hud.Start(request)
         balance.Text = ("R$ %d"):format(player:GetAttribute("RoleCash") or 0)
     end
     local function bind(character)
+        currentCharacter = character
         if healthChanged then
             healthChanged:Disconnect()
             healthChanged = nil
@@ -72,6 +74,15 @@ function Hud.Start(request)
         humanoid = character and character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             healthChanged = humanoid.HealthChanged:Connect(render)
+        elseif character then
+            task.spawn(function()
+                local found = character:WaitForChild("Humanoid", 10)
+                if currentCharacter == character and found and found:IsA("Humanoid") then
+                    humanoid = found
+                    healthChanged = found.HealthChanged:Connect(render)
+                    render()
+                end
+            end)
         end
         render()
     end

@@ -9,6 +9,7 @@ local Careers = require(script.Parent.Careers)
 
 local Characters = {}
 local deathConnections = {}
+local spawning = {}
 
 local function find(account, id)
     if type(id) == "string" and #id == 36 then
@@ -26,7 +27,17 @@ local function validName(value)
         return false
     end
     local length = utf8.len(value)
-    return length ~= nil and length >= 2 and length <= 18
+    if not length or length < 2 or length > 18 then
+        return false
+    end
+    for _, code in utf8.codes(value) do
+        local asciiLetter = (code >= 65 and code <= 90) or (code >= 97 and code <= 122)
+        local latinLetter = code >= 192 and code <= 255 and code ~= 215 and code ~= 247
+        if not asciiLetter and not latinLetter then
+            return false
+        end
+    end
+    return true
 end
 
 local function filterName(player, value)
@@ -60,10 +71,12 @@ function Characters.Create(player, first, last, options)
     if not appearance or not validName(first) or not validName(last) then
         return false, "Use nome e sobrenome de 2 a 18 letras, sem espaços."
     end
-    local ok, filteredFirst, filteredLast = pcall(function()
-        return filterName(player, first), filterName(player, last)
-    end)
-    if not ok or not validName(filteredFirst) or not validName(filteredLast) then
+    local ok, filtered = pcall(filterName, player, first .. " " .. last)
+    local filteredFirst, filteredLast
+    if ok then
+        filteredFirst, filteredLast = filtered:match("^(%S+) (%S+)$")
+    end
+    if not validName(filteredFirst) or not validName(filteredLast) then
         return false, "O nome não pôde ser aprovado. Tente outro nome."
     end
 
@@ -120,15 +133,17 @@ end
 
 local function spawnCharacter(player, character)
     clearDeath(player)
+    spawning[player] = true
     Teams.Restore(player, character)
     local description = Appearance.Description(character.Appearance)
     local ok, reason = pcall(function()
         player:LoadCharacterWithHumanoidDescriptionAsync(description)
     end)
     description:Destroy()
+    spawning[player] = nil
     local model = player.Character
     local humanoid = model and model:FindFirstChildOfClass("Humanoid")
-    if not ok or not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
+    if player.Parent ~= Players or not ok or not humanoid or humanoid.RigType ~= Enum.HumanoidRigType.R15 then
         warn("[OPERAÇÃO RIO] Falha ao criar avatar R15", player.UserId, reason)
         if model then
             model:Destroy()
@@ -168,6 +183,9 @@ function Characters.Select(player, id)
 end
 
 function Characters.ReturnToMenu(player)
+    if spawning[player] then
+        return false, "O avatar está carregando. Aguarde um instante."
+    end
     clearDeath(player)
     Profiles.SetActive(player, nil)
     for _, attribute in ipairs({ "ActiveCharacterId", "RoleName", "RoleRank", "RoleCash", "RoleArmor" }) do

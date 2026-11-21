@@ -31,3 +31,13 @@ O mapeamento Rojo original foi preservado. `src/shared` contém configurações 
 | Território e baque | Sete comunidades, IDs estáveis, facções e parâmetros de captura em `GameConfig` | Mapa, zonas, presença verificada no servidor, posse, captura, recarga e interface |
 
 O [roteiro de testes no Studio](docs/testes-studio.md) descreve os cenários de aceitação.
+
+## Fase 2 — Personagens e entrada na cidade
+
+Na experiência de teste, selecione **R15** em configurações de avatar do Studio antes de executar. Comece no menu, crie um personagem, escolha um dos seis modelos visuais, personalize e salve. Abra a ficha do personagem e selecione **Entrar na cidade**. Use **Trocar personagem** na HUD para voltar ao menu. Cada conta tem até três personagens com inventários, dinheiro, banco, garagem e carreiras próprios.
+
+A versão 2 do perfil incorpora os dados da versão 1 ao primeiro personagem criado. Atualize servidores da experiência juntos para evitar que versões antigas tentem abrir perfis migrados. Carreiras policiais são controladas pelo servidor. Modelos visuais e coletes cosméticos não concedem acesso nem proteção. As patentes iniciais têm estrutura persistente, com recrutamento e progressão ainda pendentes.
+
+A prévia e o cenário do menu usam peças originais e corpo R15 sem IDs de assets privados. Roupas e acessórios artísticos finais, áudio original, loja VIP, veículos e indicador de território permanecem pendentes. O valor de colete na HUD é zero até a integração de combate. O ajuste de movimento vale para a sessão atual.
+
+Consulte o [roteiro da Fase 2](docs/testes-personagens.md).
